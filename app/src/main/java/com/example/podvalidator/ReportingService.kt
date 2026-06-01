@@ -2,6 +2,8 @@ package com.example.podvalidator
 
 import android.content.Context
 import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -15,12 +17,16 @@ class ReportingService(private val context: Context) {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val queueFile: File = File(context.filesDir, "pending_reports.json")
 
-    suspend fun submitTransaction(transaction: DeliveryTransaction): ReportSubmitResult {
+    suspend fun submitTransaction(transaction: DeliveryTransaction): ReportSubmitResult = withContext(Dispatchers.IO) {
         appendToQueue(transaction)
-        return flushPending()
+        flushPendingFromQueue()
     }
 
-    suspend fun flushPending(): ReportSubmitResult {
+    suspend fun flushPending(): ReportSubmitResult = withContext(Dispatchers.IO) {
+        flushPendingFromQueue()
+    }
+
+    private fun flushPendingFromQueue(): ReportSubmitResult {
         val pending = readQueue()
         if (pending.isEmpty()) {
             return ReportSubmitResult(success = true, message = "No pending records to sync.", pendingCount = 0)
@@ -41,25 +47,27 @@ class ReportingService(private val context: Context) {
                 .url(endpoint)
                 .post(payload.toRequestBody("application/json".toMediaType()))
                 .build()
-            val response = httpClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                clearQueue()
-                ReportSubmitResult(
-                    success = true,
-                    message = "Synced ${pending.size} record(s) successfully.",
-                    pendingCount = 0
-                )
-            } else {
-                ReportSubmitResult(
-                    success = false,
-                    message = "Sync failed with HTTP ${response.code}. Pending queue retained.",
-                    pendingCount = pending.size
-                )
+            httpClient.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    clearQueue()
+                    ReportSubmitResult(
+                        success = true,
+                        message = "Synced ${pending.size} record(s) successfully.",
+                        pendingCount = 0
+                    )
+                } else {
+                    ReportSubmitResult(
+                        success = false,
+                        message = "Sync failed with HTTP ${response.code}. Pending queue retained.",
+                        pendingCount = pending.size
+                    )
+                }
             }
         } catch (e: Exception) {
+            val errorDetail = e.message?.takeIf { it.isNotBlank() } ?: e::class.java.simpleName
             ReportSubmitResult(
                 success = false,
-                message = "Sync failed: ${e.message ?: "Unknown error"}. Pending queue retained.",
+                message = "Sync failed: $errorDetail. Pending queue retained.",
                 pendingCount = pending.size
             )
         }
