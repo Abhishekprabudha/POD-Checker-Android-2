@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        buildConfigField("String", "REPORTING_WEBHOOK_URL", "\"\")
+        buildConfigField("String", "https://script.google.com/macros/s/AKfycbxN-ZPMtC2Af-yqW1CbNaG19sEcotWALTgeJnFjtJ9MrAqNE51N9xgBYHr55jdB5Zis/exec", "\"\")
         applicationId = "com.example.podvalidator"
         minSdk = 24
         targetSdk = 34
