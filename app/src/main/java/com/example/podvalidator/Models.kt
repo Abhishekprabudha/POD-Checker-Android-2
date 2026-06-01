@@ -9,7 +9,11 @@ data class DeliveryPoint(
     val address: String,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val allowedRadiusMeters: Double = 100.0
+    val allowedRadiusMeters: Double = 100.0,
+    val mappedUsername: String? = null,
+    val lastAction: String? = null,
+    val lastDecision: String? = null,
+    val lastUpdatedIsoTimestamp: String? = null
 )
 
 enum class DeliveryAction {

@@ -125,18 +125,14 @@ fun DeliveryValidatorApp() {
                 if (scanned.isNullOrBlank()) {
                     status = "No barcode/waybill detected in the scanned image."
                 } else {
-                    waybill = scanned
-                    selectedDelivery = repo.findWaybill(scanned)
+                    waybill = scanned.trim().uppercase()
+                    selectedDelivery = repo.getOrCreateWaybill(waybill, username)
                     validationResult = null
                     actionSnapshot = null
                     photoSnapshot = null
                     photoBitmap = null
                     selectedAction = null
-                    status = if (selectedDelivery == null) {
-                        "Scanned waybill $scanned, but it was not found in mapped delivery data."
-                    } else {
-                        "Scanned waybill $scanned successfully. Now choose Delivered or Non-Delivered."
-                    }
+                    status = "Scanned waybill $waybill is ready and mapped to ${username.ifBlank { "the next entered username" }}. Now choose Delivered or Non-Delivered."
                 }
             }
         }
@@ -150,10 +146,11 @@ fun DeliveryValidatorApp() {
         } else {
             photoBitmap = bitmap
             scope.launch {
-                val delivery = selectedDelivery
                 val action = selectedAction
-                if (delivery == null) {
-                    status = "Select a valid waybill first."
+                val delivery = selectedDelivery ?: repo.getOrCreateWaybill(waybill, username)
+                selectedDelivery = delivery
+                if (waybill.trim().isBlank() || delivery == null) {
+                    status = "Enter or scan a waybill before proceeding."
                     return@launch
                 }
                 if (username.trim().isBlank()) {
@@ -186,6 +183,7 @@ fun DeliveryValidatorApp() {
                     validationResult = validationResult!!,
                     versionName = versionName
                 )
+                selectedDelivery = repo.updateFromTransaction(transaction)
                 val reportResult = reportingService.submitTransaction(transaction)
                 syncMessage = "${reportResult.message} Pending queue: ${reportResult.pendingCount}"
             }
@@ -209,7 +207,7 @@ fun DeliveryValidatorApp() {
     ) {
         Text("POD Delivery Validator - Advanced", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Text(
-            "Workflow: username → enter/scan waybill → click Delivered/Non-Delivered → capture live proof photo → app validates action-click GPS against photo GPS within 100m, records human presence, and posts transaction for reporting.",
+            "Workflow: username → enter/scan any waybill → app adds/updates that waybill in the local database mapped to the username → click Delivered/Non-Delivered → capture live proof photo → app validates action-click GPS against photo GPS (and saved GPS when available), records human presence, and posts transaction for reporting.",
             style = MaterialTheme.typography.bodyMedium
         )
 
@@ -235,10 +233,12 @@ fun DeliveryValidatorApp() {
                         selectedAction = null
                     }
                 )
-                status = if (selectedDelivery == null) {
-                    "Waybill not found yet."
+                status = if (waybill.isBlank()) {
+                    "Enter or scan a waybill to continue."
+                } else if (selectedDelivery == null) {
+                    "New waybill will be added to the local database and mapped to this username."
                 } else {
-                    "Waybill found. Now choose Delivered or Non-Delivered."
+                    "Waybill found in local database. Now choose Delivered or Non-Delivered."
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -264,6 +264,9 @@ fun DeliveryValidatorApp() {
                     Text("Customer: ${delivery.customerName}")
                     Text("Address: ${delivery.address}")
                     Text("Expected GPS: ${delivery.latitude ?: "-"}, ${delivery.longitude ?: "-"}")
+                    Text("Mapped username: ${delivery.mappedUsername ?: "-"}")
+                    Text("Last action/decision: ${delivery.lastAction ?: "-"} / ${delivery.lastDecision ?: "-"}")
+                    Text("Last updated: ${delivery.lastUpdatedIsoTimestamp ?: "-"}")
                     Text("Allowed radius: ${delivery.allowedRadiusMeters.toInt()} meters")
                 }
             }
@@ -276,10 +279,16 @@ fun DeliveryValidatorApp() {
                     status = "Enter courier username first."
                     return@Button
                 }
-                if (selectedDelivery == null) {
-                    status = "Enter or scan a valid waybill first."
+                if (waybill.trim().isBlank()) {
+                    status = "Enter or scan a waybill first."
                     return@Button
                 }
+                val delivery = repo.getOrCreateWaybill(waybill, username)
+                if (delivery == null) {
+                    status = "Enter or scan a waybill first."
+                    return@Button
+                }
+                selectedDelivery = delivery
                 if (!isLocationEnabled(context)) {
                     status = "Location is OFF. Turn it on to continue."
                     requestLocationEnable(context, enableLocationLauncher) {}
@@ -303,10 +312,16 @@ fun DeliveryValidatorApp() {
                     status = "Enter courier username first."
                     return@Button
                 }
-                if (selectedDelivery == null) {
-                    status = "Enter or scan a valid waybill first."
+                if (waybill.trim().isBlank()) {
+                    status = "Enter or scan a waybill first."
                     return@Button
                 }
+                val delivery = repo.getOrCreateWaybill(waybill, username)
+                if (delivery == null) {
+                    status = "Enter or scan a waybill first."
+                    return@Button
+                }
+                selectedDelivery = delivery
                 if (!isLocationEnabled(context)) {
                     status = "Location is OFF. Turn it on to continue."
                     requestLocationEnable(context, enableLocationLauncher) {}
@@ -338,10 +353,11 @@ fun DeliveryValidatorApp() {
             }) { Text("Check Location") }
 
             Button(onClick = {
-                if (selectedDelivery == null) {
-                    status = "Enter or scan a valid waybill first."
+                if (waybill.trim().isBlank()) {
+                    status = "Enter or scan a waybill first."
                     return@Button
                 }
+                selectedDelivery = selectedDelivery ?: repo.getOrCreateWaybill(waybill, username)
                 if (selectedAction == null || actionSnapshot == null) {
                     status = "Click Delivered or Non-Delivered first."
                     return@Button
