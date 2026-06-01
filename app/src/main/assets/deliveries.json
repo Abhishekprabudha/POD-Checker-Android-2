@@ -1,0 +1,12 @@
+[
+  {"waybill":"WB1001","customerName":"Griselda Patricia","address":"Daerah Khusus Ibukota, Jakarta","latitude":-6.21078,"longitude":106.81850,"allowedRadiusMeters":200.0},
+  {"waybill":"WB1002","customerName":"Griselda Patricia","address":"Daerah Khusus Ibukota, Jakarta","latitude":-6.17877,"longitude":106.79757,"allowedRadiusMeters":200.0},
+  {"waybill":"WB1003","customerName":"Rohan Iyer","address":"Indiranagar, Bengaluru","latitude":12.9784,"longitude":77.6408,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1004","customerName":"Ananya Rao","address":"Banjara Hills, Hyderabad","latitude":17.4126,"longitude":78.4347,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1005","customerName":"Ishaan Sen","address":"Salt Lake Sector V, Kolkata","latitude":22.5760,"longitude":88.4345,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1006","customerName":"Meera Nair","address":"T Nagar, Chennai","latitude":13.0418,"longitude":80.2337,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1007","customerName":"Kabir Singh","address":"Viman Nagar, Pune","latitude":18.5679,"longitude":73.9143,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1008","customerName":"Saanvi Patel","address":"Navrangpura, Ahmedabad","latitude":23.0330,"longitude":72.5617,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1009","customerName":"Vivaan Khanna","address":"Hazratganj, Lucknow","latitude":26.8506,"longitude":80.9462,"allowedRadiusMeters":120.0},
+  {"waybill":"WB1010","customerName":"Myra Joseph","address":"Kakkanad, Kochi","latitude":10.0159,"longitude":76.3419,"allowedRadiusMeters":120.0}
+]
