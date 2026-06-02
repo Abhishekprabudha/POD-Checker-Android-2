@@ -46,7 +46,11 @@ data class ValidationResult(
     val actionToBackendDistanceMeters: Double?,
     val photoToBackendDistanceMeters: Double?,
     val allowedRadiusMeters: Double,
-    val summary: String
+    val summary: String,
+    val photoQualityPassed: Boolean = true,
+    val photoQualityIssue: String? = null,
+    val photoBrightness: Double? = null,
+    val photoSharpness: Double? = null
 )
 
 @Serializable
