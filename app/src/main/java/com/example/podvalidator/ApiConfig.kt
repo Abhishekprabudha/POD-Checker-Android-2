@@ -11,5 +11,5 @@ object ApiConfig {
     const val REPORTING_WEBHOOK_URL: String = BuildConfig.REPORTING_WEBHOOK_URL
 
     const val WEBHOOK_NOT_CONFIGURED_HINT: String =
-        "Reporting webhook is not configured. Add a Google Apps Script Web App URL in BuildConfig."
+        "Webhook pelaporan belum dikonfigurasi. Tambahkan URL Google Apps Script Web App di BuildConfig."
 }

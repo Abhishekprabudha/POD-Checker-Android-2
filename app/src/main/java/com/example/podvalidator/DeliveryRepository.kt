@@ -46,8 +46,8 @@ class DeliveryRepository(context: Context) {
         return upsertCustomDelivery(
             DeliveryPoint(
                 waybill = normalizedWaybill,
-                customerName = "Ad hoc waybill",
-                address = "Captured from app entry/scan",
+                customerName = "Resi ad hoc",
+                address = "Dibuat dari input atau pemindaian aplikasi",
                 mappedUsername = username.normalizedUsername().takeIf { it.isNotBlank() },
                 lastUpdatedIsoTimestamp = currentIsoTimestamp()
             )

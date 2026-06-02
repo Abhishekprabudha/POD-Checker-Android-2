@@ -103,13 +103,13 @@ fun DeliveryValidatorApp() {
     var username by remember { mutableStateOf("") }
     var waybill by remember { mutableStateOf("") }
     var selectedDelivery by remember { mutableStateOf<DeliveryPoint?>(null) }
-    var status by remember { mutableStateOf("Enter username to start, then enter or scan a waybill.") }
+    var status by remember { mutableStateOf("Masukkan nama kurir untuk memulai, lalu masukkan atau pindai nomor resi.") }
     var photoBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var actionSnapshot by remember { mutableStateOf<EventSnapshot?>(null) }
     var photoSnapshot by remember { mutableStateOf<EventSnapshot?>(null) }
     var selectedAction by remember { mutableStateOf<DeliveryAction?>(null) }
     var validationResult by remember { mutableStateOf<ValidationResult?>(null) }
-    var syncMessage by remember { mutableStateOf("Pending report sync has not started.") }
+    var syncMessage by remember { mutableStateOf("Sinkronisasi laporan tertunda belum dimulai.") }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -118,10 +118,10 @@ fun DeliveryValidatorApp() {
         val locationGranted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         status = when {
-            !cameraGranted && !locationGranted -> "Camera and location permissions are required."
-            !cameraGranted -> "Camera permission is required."
-            !locationGranted -> "Location permission is required."
-            else -> "Permissions granted. You can proceed."
+            !cameraGranted && !locationGranted -> "Izin kamera dan lokasi diperlukan."
+            !cameraGranted -> "Izin kamera diperlukan."
+            !locationGranted -> "Izin lokasi diperlukan."
+            else -> "Izin diberikan. Anda dapat melanjutkan."
         }
     }
 
@@ -129,9 +129,9 @@ fun DeliveryValidatorApp() {
         ActivityResultContracts.StartIntentSenderForResult()
     ) {
         status = if (isLocationEnabled(context)) {
-            "Location services enabled."
+            "Layanan lokasi aktif."
         } else {
-            "Location must stay enabled for this app to work."
+            "Lokasi harus tetap aktif agar aplikasi dapat berjalan."
         }
     }
 
@@ -139,12 +139,12 @@ fun DeliveryValidatorApp() {
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap == null) {
-            status = "Waybill scan cancelled."
+            status = "Pemindaian resi dibatalkan."
         } else {
             scope.launch {
                 val scanned = scanWaybillFromBitmap(bitmap)
                 if (scanned.isNullOrBlank()) {
-                    status = "No barcode/waybill detected in the scanned image."
+                    status = "Barcode atau nomor resi tidak terdeteksi pada gambar yang dipindai."
                 } else {
                     waybill = scanned.trim().uppercase()
                     selectedDelivery = repo.getOrCreateWaybill(waybill, username)
@@ -153,7 +153,7 @@ fun DeliveryValidatorApp() {
                     photoSnapshot = null
                     photoBitmap = null
                     selectedAction = null
-                    status = "Scanned waybill $waybill is ready and mapped to ${username.ifBlank { "the next entered username" }}. Now choose Delivered or Non-Delivered."
+                    status = "Resi hasil pindai $waybill siap dan dipetakan ke ${username.ifBlank { "nama kurir yang akan dimasukkan" }}. Sekarang pilih Terkirim atau Gagal."
                 }
             }
         }
@@ -163,7 +163,7 @@ fun DeliveryValidatorApp() {
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap == null) {
-            status = "Photo capture cancelled."
+            status = "Pengambilan foto dibatalkan."
         } else {
             photoBitmap = bitmap
             scope.launch {
@@ -171,15 +171,15 @@ fun DeliveryValidatorApp() {
                 val delivery = selectedDelivery ?: repo.getOrCreateWaybill(waybill, username)
                 selectedDelivery = delivery
                 if (waybill.trim().isBlank() || delivery == null) {
-                    status = "Enter or scan a waybill before proceeding."
+                    status = "Masukkan atau pindai nomor resi sebelum melanjutkan."
                     return@launch
                 }
                 if (username.trim().isBlank()) {
-                    status = "Enter username before proceeding."
+                    status = "Masukkan nama kurir sebelum melanjutkan."
                     return@launch
                 }
                 if (actionSnapshot == null || action == null) {
-                    status = "Choose Delivered or Non-Delivered first so the app can capture click location and time."
+                    status = "Pilih Terkirim atau Gagal terlebih dahulu agar aplikasi dapat merekam lokasi dan waktu aksi."
                     return@launch
                 }
 
@@ -192,7 +192,7 @@ fun DeliveryValidatorApp() {
                     actionSnapshot = actionSnapshot,
                     photoSnapshot = photoSnapshot
                 )
-                status = validationResult?.summary ?: "Validation complete."
+                status = validationResult?.summary ?: "Validasi selesai."
                 if (validationResult?.photoQualityPassed == false) {
                     return@launch
                 }
@@ -209,7 +209,7 @@ fun DeliveryValidatorApp() {
                 )
                 selectedDelivery = repo.updateFromTransaction(transaction)
                 val reportResult = reportingService.submitTransaction(transaction)
-                syncMessage = "${reportResult.message} Pending queue: ${reportResult.pendingCount}"
+                syncMessage = "${reportResult.message} Antrean tertunda: ${reportResult.pendingCount}"
             }
         }
     }
@@ -272,9 +272,11 @@ fun DeliveryValidatorApp() {
     val statusTone = when {
         validation?.isGenuine == true -> FeedbackTone.Success
         validation != null -> FeedbackTone.Error
-        status.contains("required", ignoreCase = true) ||
-            status.contains("OFF", ignoreCase = true) ||
-            status.contains("cannot", ignoreCase = true) ||
+        status.contains("diperlukan", ignoreCase = true) ||
+            status.contains("harus", ignoreCase = true) ||
+            status.contains("belum", ignoreCase = true) ||
+            status.contains("tidak berhasil", ignoreCase = true) ||
+            status.contains("tidak dapat", ignoreCase = true) ||
             status.contains("gagal", ignoreCase = true) -> FeedbackTone.Error
         else -> FeedbackTone.Info
     }
@@ -408,14 +410,14 @@ fun DeliveryValidatorApp() {
             onSaveAndSend = {
                 scope.launch {
                     val result = reportingService.flushPending()
-                    syncMessage = "${result.message} Pending queue: ${result.pendingCount}"
+                    syncMessage = "${result.message} Antrean tertunda: ${result.pendingCount}"
                     status = if (canSaveAndSend) "Laporan berhasil disiapkan untuk dikirim." else status
                 }
             },
             onSync = {
                 scope.launch {
                     val result = reportingService.flushPending()
-                    syncMessage = "${result.message} Pending queue: ${result.pendingCount}"
+                    syncMessage = "${result.message} Antrean tertunda: ${result.pendingCount}"
                 }
             }
         )
@@ -459,7 +461,6 @@ private fun FriendlyTopBar(username: String) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            TextIcon("←", BrandRed, Modifier.size(34.dp))
             Text(
                 "Validasi Pengiriman",
                 modifier = Modifier.weight(1f),
@@ -467,10 +468,6 @@ private fun FriendlyTopBar(username: String) {
                 fontWeight = FontWeight.Black,
                 color = BrandRed
             )
-            Box {
-                TextIcon("♢", Cocoa, Modifier.size(32.dp))
-                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(BrandRed).align(Alignment.TopEnd))
-            }
             Box(
                 modifier = Modifier.size(54.dp).clip(CircleShape).background(Color(0xFFDDE7EA)).border(1.dp, Color(0xFFF3B7AC), CircleShape),
                 contentAlignment = Alignment.Center
@@ -739,7 +736,7 @@ private fun BottomActionPanel(canSaveAndSend: Boolean, showRetake: Boolean, onRe
             ) {
                 TextIcon("↻", ActionBlue)
                 Spacer(Modifier.width(12.dp))
-                Text("SYNC REPORT", color = ActionBlue, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
+                Text("SINKRONISASI LAPORAN", color = ActionBlue, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge)
             }
         }
     }
@@ -847,7 +844,7 @@ private suspend fun validateDelivery(
         return ValidationResult(
             isGenuine = false,
             humanDetected = humanDetected,
-            validationMode = "Photo quality validation",
+            validationMode = "Validasi kualitas foto",
             actionClickLatitude = actionSnapshot?.latitude,
             actionClickLongitude = actionSnapshot?.longitude,
             actionClickTimestampEpochMillis = actionSnapshot?.timestampEpochMillis,
@@ -872,7 +869,7 @@ private suspend fun validateDelivery(
         return ValidationResult(
             isGenuine = false,
             humanDetected = humanDetected,
-            validationMode = if (hasBackendCoordinates) "Three-way cross-validation" else "Two-way cross-validation",
+            validationMode = if (hasBackendCoordinates) "Validasi silang tiga titik" else "Validasi silang dua titik",
             actionClickLatitude = null,
             actionClickLongitude = null,
             actionClickTimestampEpochMillis = actionSnapshot?.timestampEpochMillis,
@@ -885,7 +882,7 @@ private suspend fun validateDelivery(
             actionToBackendDistanceMeters = null,
             photoToBackendDistanceMeters = null,
             allowedRadiusMeters = radius,
-            summary = "Action click location could not be captured. Delivery cannot be validated.",
+            summary = "Lokasi saat memilih aksi tidak berhasil direkam. Pengiriman tidak dapat divalidasi.",
             photoBrightness = photoQuality.brightness,
             photoSharpness = photoQuality.sharpness
         )
@@ -895,7 +892,7 @@ private suspend fun validateDelivery(
         return ValidationResult(
             isGenuine = false,
             humanDetected = humanDetected,
-            validationMode = if (hasBackendCoordinates) "Three-way cross-validation" else "Two-way cross-validation",
+            validationMode = if (hasBackendCoordinates) "Validasi silang tiga titik" else "Validasi silang dua titik",
             actionClickLatitude = actionSnapshot.latitude,
             actionClickLongitude = actionSnapshot.longitude,
             actionClickTimestampEpochMillis = actionSnapshot.timestampEpochMillis,
@@ -908,7 +905,7 @@ private suspend fun validateDelivery(
             actionToBackendDistanceMeters = null,
             photoToBackendDistanceMeters = null,
             allowedRadiusMeters = radius,
-            summary = "Photo capture location could not be fetched. Delivery cannot be validated.",
+            summary = "Lokasi saat mengambil foto tidak berhasil diperoleh. Pengiriman tidak dapat divalidasi.",
             photoBrightness = photoQuality.brightness,
             photoSharpness = photoQuality.sharpness
         )
@@ -948,16 +945,16 @@ private suspend fun validateDelivery(
         actionAndPhotoWithinRadius
     }
 
-    val validationMode = if (hasBackendCoordinates) "Three-way cross-validation" else "Two-way cross-validation"
+    val validationMode = if (hasBackendCoordinates) "Validasi silang tiga titik" else "Validasi silang dua titik"
     val summary = when {
         withinRadius && hasBackendCoordinates ->
-            "$validationMode result = GENUINE. Action-click GPS, photo GPS, and backend GPS are all within ${radius.toInt()}m. Human detected = ${if (humanDetected) "Yes" else "No"}."
+            "Hasil $validationMode = ASLI. GPS saat memilih aksi, GPS foto, dan GPS backend semuanya berada dalam radius ${radius.toInt()}m. Manusia terdeteksi = ${if (humanDetected) "Ya" else "Tidak"}."
         withinRadius ->
-            "$validationMode result = GENUINE. Action-click GPS and photo GPS are within ${radius.toInt()}m. Human detected = ${if (humanDetected) "Yes" else "No"}."
+            "Hasil $validationMode = ASLI. GPS saat memilih aksi dan GPS foto berada dalam radius ${radius.toInt()}m. Manusia terdeteksi = ${if (humanDetected) "Ya" else "Tidak"}."
         hasBackendCoordinates ->
-            "$validationMode result = NON GENUINE. Not all location points are within ${radius.toInt()}m. Human detected = ${if (humanDetected) "Yes" else "No"}."
+            "Hasil $validationMode = TIDAK ASLI. Tidak semua titik lokasi berada dalam radius ${radius.toInt()}m. Manusia terdeteksi = ${if (humanDetected) "Ya" else "Tidak"}."
         else ->
-            "$validationMode result = NON GENUINE. Action-click GPS and photo GPS are outside ${radius.toInt()}m. Human detected = ${if (humanDetected) "Yes" else "No"}."
+            "Hasil $validationMode = TIDAK ASLI. GPS saat memilih aksi dan GPS foto berada di luar radius ${radius.toInt()}m. Manusia terdeteksi = ${if (humanDetected) "Ya" else "Tidak"}."
     }
 
     return ValidationResult(

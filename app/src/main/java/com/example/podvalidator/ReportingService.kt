@@ -29,7 +29,7 @@ class ReportingService(private val context: Context) {
     private fun flushPendingFromQueue(): ReportSubmitResult {
         val pending = readQueue()
         if (pending.isEmpty()) {
-            return ReportSubmitResult(success = true, message = "No pending records to sync.", pendingCount = 0)
+            return ReportSubmitResult(success = true, message = "Tidak ada laporan tertunda untuk disinkronkan.", pendingCount = 0)
         }
 
         val endpoint = ApiConfig.REPORTING_WEBHOOK_URL.trim()
@@ -52,13 +52,13 @@ class ReportingService(private val context: Context) {
                     clearQueue()
                     ReportSubmitResult(
                         success = true,
-                        message = "Synced ${pending.size} record(s) successfully.",
+                        message = "Berhasil menyinkronkan ${pending.size} laporan.",
                         pendingCount = 0
                     )
                 } else {
                     ReportSubmitResult(
                         success = false,
-                        message = "Sync failed with HTTP ${response.code}. Pending queue retained.",
+                        message = "Sinkronisasi gagal dengan HTTP ${response.code}. Antrean tertunda tetap disimpan.",
                         pendingCount = pending.size
                     )
                 }
@@ -67,7 +67,7 @@ class ReportingService(private val context: Context) {
             val errorDetail = e.message?.takeIf { it.isNotBlank() } ?: e::class.java.simpleName
             ReportSubmitResult(
                 success = false,
-                message = "Sync failed: $errorDetail. Pending queue retained.",
+                message = "Sinkronisasi gagal: $errorDetail. Antrean tertunda tetap disimpan.",
                 pendingCount = pending.size
             )
         }
